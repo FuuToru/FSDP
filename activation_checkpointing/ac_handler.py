@@ -2,6 +2,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper,
     CheckpointImpl,
 )
+from transformers.models.t5.modeling_t5 import T5Block
 
 def apply_fsdp_checkpointing(model):
     """Apply activation checkpointing to T5Block modules in the model."""
