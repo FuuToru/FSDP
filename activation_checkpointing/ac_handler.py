@@ -1,31 +1,18 @@
-import torch
-import os
-import torch.distributed as dist
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper,
     CheckpointImpl,
-    apply_activation_checkpointing_wrapper,
 )
-
-from transformers.models.t5.modeling_t5 import T5Block
-
-from functools import partial
-
-non_reentrant_wrapper = partial(
-    checkpoint_wrapper,
-    offload_to_cpu=False,
-    checkpoint_impl=CheckpointImpl.NO_REENTRANT,
-)
-
-check_fn = lambda submodule: isinstance(submodule, T5Block)
-
 
 def apply_fsdp_checkpointing(model):
-    """apply activation checkpointing to model
-    returns None as model is updated directly
-    """
-    print(f"--> applying fdsp activation checkpointing...")
-
-    apply_activation_checkpointing_wrapper(
-        model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn
-    )
+    """Apply activation checkpointing to T5Block modules in the model."""
+    print(f"--> Applying FSDP activation checkpointing...")
+    for name, submodule in model.named_modules():
+        if isinstance(submodule, T5Block):
+            print(f"Applying checkpoint_wrapper to: {name}")
+            wrapped_module = checkpoint_wrapper(
+                submodule,
+                offload_to_cpu=False,
+                checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+            )
+            # Replace original submodule with the wrapped one
+            setattr(model, name, wrapped_module)
